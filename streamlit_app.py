@@ -3,8 +3,8 @@ import requests
 import pandas as pd
 from streamlit_geolocation import streamlit_geolocation
 
-API_URL = "http://127.0.0.1:8000/api/search"
-GEOCODE_URL = "http://127.0.0.1:8000/api/geocode"
+API_URL = "https://budget-travel-ai-api.onrender.com/api/search"
+GEOCODE_URL = "https://budget-travel-ai-api.onrender.com/api/geocode"
 
 st.set_page_config(page_title="Budget Travel AI", page_icon="🧳", layout="wide")
 
