@@ -15,7 +15,7 @@ async def search(request: SearchRequest):
             radius=request.radius,
         )
     except Exception as e:
-        print("PLACES API ERROR:", repr(e))  # ← add this line
+        print("PLACES API ERROR:", repr(e))
         raise HTTPException(status_code=502, detail=f"Places API error: {str(e)}")
 
     ranked = score_by_budget(places, request.max_budget_level)

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Budget Travel AI - Smart & Affordable Places Finder</title>
+  <meta name="description" content="Discover high-rated, budget-friendly restaurants, stays, cafes & hidden gems near you using interactive maps." />
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.css" />
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <span class="brand-icon">🧭</span>
+        <span class="brand-name">Budget Travel <span class="gradient-text">AI</span></span>
+      </div>
+      <div class="nav-actions">
+        <button id="open-saved-btn" class="btn btn-outline" title="View saved places">
+          <i class="fa-solid fa-heart"></i>
+          <span>Saved Spots</span>
+          <span id="saved-count-badge" class="badge-count">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-container">
+    
+    <!-- Hero Banner -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <h1 class="hero-title">Find High-Rated, <span class="gradient-text">Budget-Friendly</span> Places</h1>
+        <p class="hero-subtitle">Smart AI budget filtering near any location with interactive satellite maps and direct navigation.</p>
+      </div>
+    </section>
+
+    <!-- Search & Filter Card -->
+    <section class="search-card">
+      <form id="search-form" class="search-grid">
+        
+        <!-- Step 1: Location -->
+        <div class="form-group location-group">
+          <label for="location-input"><i class="fa-solid fa-location-dot"></i> Location</label>
+          <div class="input-with-action">
+            <input type="text" id="location-input" placeholder="Type city, landmark or neighborhood (e.g. Patia Bhubaneswar, Paris)..." autocomplete="off" required />
+            <button type="button" id="gps-btn" class="btn-icon" title="Use My Current GPS Location">
+              <i class="fa-solid fa-crosshairs"></i>
+            </button>
+          </div>
+          <div id="geocode-dropdown" class="geocode-dropdown hidden"></div>
+          <div id="location-status" class="location-status"></div>
+        </div>
+
+        <!-- Step 2: What are you looking for? -->
+        <div class="form-group query-group">
+          <label for="query-input"><i class="fa-solid fa-magnifying-glass"></i> What are you looking for?</label>
+          <input type="text" id="query-input" value="restaurant" placeholder="e.g. restaurant, cafes, street food, budget stays" required />
+          <!-- Quick query preset pills -->
+          <div class="preset-pills">
+            <button type="button" class="pill-btn" data-query="restaurant">🍴 Food</button>
+            <button type="button" class="pill-btn" data-query="cafes">☕ Cafes</button>
+            <button type="button" class="pill-btn" data-query="street food">🍢 Street Food</button>
+            <button type="button" class="pill-btn" data-query="cheap hotels">🏨 Stays</button>
+            <button type="button" class="pill-btn" data-query="tourist attractions">🏛️ Sights</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Budget Tier -->
+        <div class="form-group budget-group">
+          <label for="budget-select"><i class="fa-solid fa-wallet"></i> Max Budget Tier</label>
+          <select id="budget-select">
+            <option value="0">🆓 Free Only</option>
+            <option value="1">💲 Inexpensive (Budget)</option>
+            <option value="2" selected>💲💲 Moderate</option>
+            <option value="3">💲💲💲 Expensive</option>
+            <option value="4">💲💲💲💲 Any Price</option>
+          </select>
+        </div>
+
+        <!-- Step 4: Search Radius in KM -->
+        <div class="form-group radius-group">
+          <div class="radius-header">
+            <label for="radius-slider"><i class="fa-solid fa-arrows-to-dot"></i> Search Radius</label>
+            <span id="radius-val" class="radius-badge">5.0 km</span>
+          </div>
+          <input type="range" id="radius-slider" min="0.5" max="25.0" step="0.5" value="5.0" />
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-group submit-group">
+          <button type="submit" id="search-btn" class="btn btn-primary">
+            <i class="fa-solid fa-sparkles"></i>
+            <span>Explore Budget Places</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results-section" class="results-section hidden">
+      
+      <!-- Metrics & Analytics Strip -->
+      <div class="analytics-strip">
+        <div class="metric-card">
+          <span class="metric-label">🎯 Total Matches</span>
+          <span id="stat-total" class="metric-value">0</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">⭐ Avg Rating</span>
+          <span id="stat-rating" class="metric-value">0.0</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">🏷️ Inexpensive / Free</span>
+          <span id="stat-cheap" class="metric-value">0</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">💲💲 Moderate</span>
+          <span id="stat-moderate" class="metric-value">0</span>
+        </div>
+      </div>
+
+      <!-- Main Layout: Map on Left, Cards on Right -->
+      <div class="results-grid">
+        
+        <!-- Left: Interactive Map Container -->
+        <div class="map-container-wrapper">
+          <div class="map-header">
+            <h3><i class="fa-solid fa-map-location-dot"></i> Interactive Map (Satellite Topo)</h3>
+            <span class="map-legend">🟢 Inexpensive | 🟠 Moderate | 🔴 Origin</span>
+          </div>
+          <div id="map" class="map-view"></div>
+        </div>
+
+        <!-- Right: Filter Controls & Places List -->
+        <div class="places-container-wrapper">
+          
+          <!-- Secondary Filter Toolbar -->
+          <div class="filter-toolbar">
+            <div class="filter-item">
+              <label for="category-filter"><i class="fa-solid fa-tag"></i> Category:</label>
+              <select id="category-filter">
+                <option value="all">All Categories</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label for="sort-select"><i class="fa-solid fa-arrow-down-wide-short"></i> Sort by:</label>
+              <select id="sort-select">
+                <option value="rating">Highest Rated ⭐</option>
+                <option value="reviews">Most Reviewed 👥</option>
+                <option value="budget">Lowest Budget First 💰</option>
+              </select>
+            </div>
+            <div class="filter-item checkbox-item">
+              <label>
+                <input type="checkbox" id="open-now-checkbox" />
+                <span>🟢 Open Now</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Places List Container -->
+          <div id="places-list" class="places-list"></div>
+
+          <!-- Empty State -->
+          <div id="empty-state" class="empty-state hidden">
+            <i class="fa-solid fa-circle-info"></i>
+            <p>No places found matching your filter criteria. Try expanding your search radius or budget tier.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">Discovering the best budget places near you...</p>
+    </div>
+
+  </main>
+
+  <!-- Saved Places Drawer -->
+  <div id="saved-drawer" class="drawer">
+    <div class="drawer-header">
+      <h3><i class="fa-solid fa-heart"></i> Saved Trip Bucket List</h3>
+      <button id="close-saved-btn" class="btn-close">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div id="saved-places-list" class="saved-places-list">
+        <p class="drawer-empty">No places saved yet. Click the heart icon on any card to save places for your trip.</p>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button id="clear-saved-btn" class="btn btn-secondary btn-full">Clear All Saved</button>
+    </div>
+  </div>
+  <div id="drawer-backdrop" class="drawer-backdrop hidden"></div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.fullscreen@2.4.0/Control.FullScreen.js"></script>
+
+  <!-- App Logic -->
+  <script src="/static/app.js"></script>
+</body>
+</html>
