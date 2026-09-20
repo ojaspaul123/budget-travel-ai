@@ -1,7 +1,27 @@
 /**
  * Budget Travel AI - Frontend Logic
- * High-performance Vanilla JS with Leaflet Map and Local Storage
+ * High-performance Vanilla JS with Leaflet Map, Route Optimizer & Local Storage
  */
+
+// --- Map Layer Providers ---
+const TILE_PROVIDERS = {
+  topo: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    options: { attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ", maxZoom: 18 }
+  },
+  dark: {
+    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    options: { attribution: "&copy; OpenStreetMap contributors &copy; CARTO", maxZoom: 19, subdomains: 'abcd' }
+  },
+  street: {
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    options: { attribution: "&copy; OpenStreetMap contributors", maxZoom: 19 }
+  },
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    options: { attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community", maxZoom: 18 }
+  }
+};
 
 // --- State ---
 const state = {
@@ -13,9 +33,19 @@ const state = {
   filteredPlaces: [],
   savedPlaces: JSON.parse(localStorage.getItem("bt_saved_places") || "{}"),
   map: null,
+  currentTileLayer: null,
+  activeTileKey: "topo",
   markersLayer: null,
   radiusCircle: null,
   originMarker: null,
+  
+  // Phase 3 Routing & Tour State
+  routeLayer: null,
+  routeMode: "walking", // "walking" | "driving"
+  activeRoutePlaces: [],
+  activeRouteTitle: "",
+  showWalkRings: false,
+  walkRingsLayer: null,
 };
 
 // --- DOM Elements ---
@@ -39,10 +69,22 @@ const statRating = document.getElementById("stat-rating");
 const statCheap = document.getElementById("stat-cheap");
 const statModerate = document.getElementById("stat-moderate");
 
-// Secondary Filters
+// Secondary Filters & Actions
 const categoryFilter = document.getElementById("category-filter");
 const sortSelect = document.getElementById("sort-select");
 const openNowCheckbox = document.getElementById("open-now-checkbox");
+const quickTourBtn = document.getElementById("quick-tour-btn");
+
+// Route Tour UI
+const routeTourPanel = document.getElementById("route-tour-panel");
+const routeTitle = document.getElementById("route-title");
+const routeDist = document.getElementById("route-dist");
+const routeTime = document.getElementById("route-time");
+const routeStopsCount = document.getElementById("route-stops-count");
+const routeStopsList = document.getElementById("route-stops-list");
+const routeGmapsBtn = document.getElementById("route-gmaps-btn");
+const closeRouteBtn = document.getElementById("close-route-btn");
+const toggleWalkRingsBtn = document.getElementById("toggle-walk-rings-btn");
 
 // Drawer
 const savedDrawer = document.getElementById("saved-drawer");
@@ -52,6 +94,8 @@ const closeSavedBtn = document.getElementById("close-saved-btn");
 const clearSavedBtn = document.getElementById("clear-saved-btn");
 const savedPlacesList = document.getElementById("saved-places-list");
 const savedCountBadge = document.getElementById("saved-count-badge");
+const savedActionsBar = document.getElementById("saved-actions-bar");
+const planSavedTourBtn = document.getElementById("plan-saved-tour-btn");
 
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -107,7 +151,6 @@ function initEventListeners() {
   searchForm.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!state.lat || !state.lng) {
-      // If user typed a place but didn't click dropdown, geocode the first match
       const placeText = locationInput.value.trim();
       if (placeText) {
         showLoading("Resolving location...");
@@ -140,6 +183,71 @@ function initEventListeners() {
   categoryFilter.addEventListener("change", applyFiltersAndRender);
   sortSelect.addEventListener("change", applyFiltersAndRender);
   openNowCheckbox.addEventListener("change", applyFiltersAndRender);
+
+  // Quick Tour Button
+  if (quickTourBtn) {
+    quickTourBtn.addEventListener("click", () => {
+      const candidates = state.filteredPlaces.slice(0, 5);
+      if (candidates.length === 0) {
+        alert("No places available to route. Try searching or adjusting filters.");
+        return;
+      }
+      buildAndRenderOptimizedTour(candidates, "⚡ Quick Walking Tour (Top Spots)");
+    });
+  }
+
+  // Map Tile Switcher Buttons
+  document.querySelectorAll(".tile-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const layerKey = btn.dataset.layer;
+      switchMapTileLayer(layerKey);
+      document.querySelectorAll(".tile-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  // Walking Isochrone Rings Toggle
+  if (toggleWalkRingsBtn) {
+    toggleWalkRingsBtn.addEventListener("click", () => {
+      state.showWalkRings = !state.showWalkRings;
+      toggleWalkRingsBtn.classList.toggle("active", state.showWalkRings);
+      renderWalkingRings();
+    });
+  }
+
+  // Route Tour Controls (Mode Toggle & Close)
+  document.querySelectorAll(".btn-mode").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.mode;
+      if (mode === state.routeMode) return;
+      state.routeMode = mode;
+      document.querySelectorAll(".btn-mode").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      if (state.activeRoutePlaces.length > 0) {
+        buildAndRenderOptimizedTour(state.activeRoutePlaces, state.activeRouteTitle, false);
+      }
+    });
+  });
+
+  if (closeRouteBtn) {
+    closeRouteBtn.addEventListener("click", clearActiveRoute);
+  }
+
+  // Drawer Tour Button
+  if (planSavedTourBtn) {
+    planSavedTourBtn.addEventListener("click", () => {
+      const savedList = Object.values(state.savedPlaces);
+      if (savedList.length === 0) {
+        alert("No saved places to tour yet. Click the heart icon on places to add them.");
+        return;
+      }
+      closeDrawer();
+      buildAndRenderOptimizedTour(savedList, "🗺️ Saved Bucket-List Tour");
+      resultsSection.classList.remove("hidden");
+      resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   // Saved Drawer toggle
   openSavedBtn.addEventListener("click", openDrawer);
@@ -259,6 +367,9 @@ async function performSearch() {
     hideLoading();
     resultsSection.classList.remove("hidden");
 
+    // Clear active route when new search is made
+    clearActiveRoute();
+
     // Populate category dropdown
     populateCategoryFilter();
 
@@ -337,29 +448,30 @@ function updateAnalytics() {
   statModerate.textContent = moderateCount;
 }
 
-// --- Leaflet Map Rendering (Satellite Topo) ---
+// --- Leaflet Map Rendering ---
 function renderMap() {
   if (!state.map) {
     // Initialize map
     state.map = L.map("map", {
-      center: [state.lat, state.lng],
+      center: [state.lat || 20.2961, state.lng || 85.8245],
       zoom: 13,
       fullscreenControl: true,
     });
 
-    // Default: Esri Satellite Topographic Map (No Watermarks, High Quality)
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", {
-      attribution: "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ",
-      maxZoom: 18,
-    }).addTo(state.map);
+    // Mount initial tile provider
+    switchMapTileLayer(state.activeTileKey);
 
     state.markersLayer = L.layerGroup().addTo(state.map);
-  } else {
+    state.walkRingsLayer = L.layerGroup().addTo(state.map);
+    state.routeLayer = L.layerGroup().addTo(state.map);
+  } else if (state.lat && state.lng) {
     state.map.setView([state.lat, state.lng], 13);
     state.markersLayer.clearLayers();
     if (state.radiusCircle) state.map.removeLayer(state.radiusCircle);
     if (state.originMarker) state.map.removeLayer(state.originMarker);
   }
+
+  if (!state.lat || !state.lng) return;
 
   // Add search origin marker
   const originIcon = L.divIcon({
@@ -379,9 +491,12 @@ function renderMap() {
     color: "#0d9488",
     weight: 2,
     fillColor: "#14b8a6",
-    fillOpacity: 0.12,
+    fillOpacity: 0.1,
     dashArray: "6, 6",
   }).addTo(state.map);
+
+  // Render walking rings if enabled
+  renderWalkingRings();
 
   // Add Place Markers
   state.filteredPlaces.forEach((p, idx) => {
@@ -425,6 +540,317 @@ function renderMap() {
       .bindPopup(popupHtml, { maxWidth: 280 })
       .addTo(state.markersLayer);
   });
+}
+
+// --- Map Tile Layer Switcher ---
+function switchMapTileLayer(layerKey) {
+  const provider = TILE_PROVIDERS[layerKey] || TILE_PROVIDERS.topo;
+  state.activeTileKey = layerKey;
+
+  if (state.map) {
+    if (state.currentTileLayer) {
+      state.map.removeLayer(state.currentTileLayer);
+    }
+    state.currentTileLayer = L.tileLayer(provider.url, provider.options).addTo(state.map);
+  }
+}
+
+// --- Walking Isochrone Rings (15 min & 30 min) ---
+function renderWalkingRings() {
+  if (!state.map || !state.walkRingsLayer) return;
+  state.walkRingsLayer.clearLayers();
+
+  if (!state.showWalkRings || !state.lat || !state.lng) return;
+
+  // 15-min walk (~1.2 km at 4.8 km/h)
+  const ring15 = L.circle([state.lat, state.lng], {
+    radius: 1200,
+    color: "#10b981",
+    weight: 1.8,
+    fillColor: "#10b981",
+    fillOpacity: 0.06,
+    dashArray: "4, 6",
+  }).bindTooltip("🚶 15-min walk (~1.2 km)", { permanent: false, direction: "top" });
+
+  // 30-min walk (~2.4 km)
+  const ring30 = L.circle([state.lat, state.lng], {
+    radius: 2400,
+    color: "#f59e0b",
+    weight: 1.8,
+    fillColor: "#f59e0b",
+    fillOpacity: 0.04,
+    dashArray: "4, 6",
+  }).bindTooltip("🚶 30-min walk (~2.4 km)", { permanent: false, direction: "top" });
+
+  state.walkRingsLayer.addLayer(ring15);
+  state.walkRingsLayer.addLayer(ring30);
+}
+
+// =========================================================
+// PHASE 3: MULTI-STOP ROUTE OPTIMIZER & OSRM ENGINE
+// =========================================================
+
+/**
+ * Haversine Distance helper (in meters)
+ */
+function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+/**
+ * TSP Nearest-Neighbor Algorithm:
+ * Returns places sorted in optimal sequential visiting order from origin.
+ */
+function optimizeStopOrder(originLat, originLng, places) {
+  const validPlaces = places.filter(p => p.location && p.location.latitude && p.location.longitude);
+  if (validPlaces.length <= 1) return validPlaces;
+
+  let currentLat = originLat;
+  let currentLng = originLng;
+  const unvisited = [...validPlaces];
+  const ordered = [];
+
+  while (unvisited.length > 0) {
+    let nearestIdx = 0;
+    let nearestDist = Infinity;
+
+    for (let i = 0; i < unvisited.length; i++) {
+      const p = unvisited[i];
+      const dist = getDistanceMeters(currentLat, currentLng, p.location.latitude, p.location.longitude);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestIdx = i;
+      }
+    }
+
+    const nextPlace = unvisited.splice(nearestIdx, 1)[0];
+    ordered.push(nextPlace);
+    currentLat = nextPlace.location.latitude;
+    currentLng = nextPlace.location.longitude;
+  }
+
+  return ordered;
+}
+
+/**
+ * Fetch real route path from OSRM (Walking or Driving)
+ */
+async function fetchOSRMRoute(waypoints, mode = "walking") {
+  // OSRM coordinates format: lng,lat;lng,lat;...
+  const coordsParam = waypoints.map(wp => `${wp.lng.toFixed(6)},${wp.lat.toFixed(6)}`).join(";");
+  const osrmMode = mode === "driving" ? "driving" : "foot";
+  const url = `https://router.project-osrm.org/route/v1/${osrmMode}/${coordsParam}?overview=full&geometries=geojson`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("OSRM routing request failed");
+    const data = await res.json();
+    if (data.code === "Ok" && data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      const geometry = route.geometry.coordinates.map(c => [c[1], c[0]]); // Leaflet is [lat, lng]
+      return {
+        success: true,
+        coordinates: geometry,
+        distanceMeters: route.distance,
+        durationSeconds: route.duration,
+      };
+    }
+    throw new Error("No route geometry returned");
+  } catch (err) {
+    console.warn("OSRM routing unavailable, using straight-line geodesic fallback:", err);
+    // Fallback: straight lines
+    let totalDist = 0;
+    const fallbackCoords = waypoints.map(wp => [wp.lat, wp.lng]);
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      totalDist += getDistanceMeters(waypoints[i].lat, waypoints[i].lng, waypoints[i+1].lat, waypoints[i+1].lng);
+    }
+    const speedKmh = mode === "driving" ? 35 : 4.5;
+    const durationSeconds = (totalDist / (speedKmh * 1000 / 3600));
+
+    return {
+      success: true,
+      coordinates: fallbackCoords,
+      distanceMeters: totalDist,
+      durationSeconds: durationSeconds,
+      isFallback: true,
+    };
+  }
+}
+
+/**
+ * Build & Render the Multi-Stop Tour
+ */
+async function buildAndRenderOptimizedTour(places, title = "Optimized Tour", reorder = true) {
+  if (!state.lat || !state.lng) {
+    alert("Please set a location first.");
+    return;
+  }
+
+  showLoading("Calculating optimal multi-stop route...");
+
+  // Optimize stop sequence
+  const orderedPlaces = reorder
+    ? optimizeStopOrder(state.lat, state.lng, places)
+    : places;
+
+  state.activeRoutePlaces = orderedPlaces;
+  state.activeRouteTitle = title;
+
+  // Create waypoints list: Origin -> Stop 1 -> Stop 2 ...
+  const waypoints = [
+    { lat: state.lat, lng: state.lng, name: "Start (Origin)", isOrigin: true }
+  ];
+
+  orderedPlaces.forEach((p, idx) => {
+    if (p.location && p.location.latitude && p.location.longitude) {
+      waypoints.push({
+        lat: p.location.latitude,
+        lng: p.location.longitude,
+        name: p.name,
+        category: p.category,
+        price_symbol: p.price_symbol,
+        rating: p.rating,
+        id: p.id || `stop_${idx}`,
+      });
+    }
+  });
+
+  if (waypoints.length < 2) {
+    hideLoading();
+    alert("Not enough locations to build a route.");
+    return;
+  }
+
+  // Fetch routing geometry
+  const routeResult = await fetchOSRMRoute(waypoints, state.routeMode);
+
+  hideLoading();
+
+  // Clear previous route layer
+  if (!state.routeLayer) {
+    state.routeLayer = L.layerGroup().addTo(state.map);
+  } else {
+    state.routeLayer.clearLayers();
+  }
+
+  // Draw Route Polyline with modern gradient glow
+  const polyline = L.polyline(routeResult.coordinates, {
+    color: state.routeMode === "driving" ? "#3b82f6" : "#14b8a6",
+    weight: 5,
+    opacity: 0.9,
+    lineJoin: "round",
+  }).addTo(state.routeLayer);
+
+  // Add subtle outer glow line
+  L.polyline(routeResult.coordinates, {
+    color: state.routeMode === "driving" ? "#60a5fa" : "#5eead4",
+    weight: 10,
+    opacity: 0.25,
+    lineJoin: "round",
+  }).addTo(state.routeLayer);
+
+  // Add Waypoint Numbered Markers
+  orderedPlaces.forEach((p, idx) => {
+    if (!p.location || !p.location.latitude || !p.location.longitude) return;
+    const lat = p.location.latitude;
+    const lng = p.location.longitude;
+
+    const waypointIcon = L.divIcon({
+      className: "custom-pin-wrapper",
+      html: `<div class="route-waypoint-pin">${idx + 1}</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+
+    const gmapsUrl = p.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+    const popupHtml = `
+      <div class="popup-card">
+        <div class="popup-title">Stop #${idx + 1}: ${escapeHtml(p.name)}</div>
+        <div class="popup-meta">🏷️ ${p.category || 'Place'} | <b>${p.price_symbol || '$'}</b> | ⭐ ${p.rating || 'N/A'}</div>
+        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">📍 ${escapeHtml(p.address || '')}</div>
+        <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="popup-btn">🧭 Directions in Google Maps ↗</a>
+      </div>
+    `;
+
+    L.marker([lat, lng], { icon: waypointIcon })
+      .bindPopup(popupHtml, { maxWidth: 280 })
+      .addTo(state.routeLayer);
+  });
+
+  // Fit Map bounds to show entire route
+  state.map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+
+  // Update Route Tour Panel UI
+  const distKm = (routeResult.distanceMeters / 1000).toFixed(2);
+  const totalMins = Math.round(routeResult.durationSeconds / 60);
+  const hours = Math.floor(totalMins / 60);
+  const mins = totalMins % 60;
+  const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins} mins`;
+
+  routeTitle.textContent = `${state.routeMode === "driving" ? "🚗 Driving" : "🚶 Walking"} ${title}`;
+  routeDist.textContent = `📏 ${distKm} km`;
+  routeTime.textContent = `⏱️ ~${timeStr}`;
+  routeStopsCount.textContent = `📍 ${orderedPlaces.length} Stops`;
+
+  // Build Multi-Waypoint Google Maps Navigation Link
+  // Google Maps directions format: https://www.google.com/maps/dir/lat0,lng0/lat1,lng1/lat2,lng2/...
+  const gmapsCoords = [
+    `${state.lat},${state.lng}`,
+    ...orderedPlaces.map(p => `${p.location.latitude},${p.location.longitude}`)
+  ].join("/");
+  const gmapsTravelMode = state.routeMode === "driving" ? "driving" : "walking";
+  routeGmapsBtn.href = `https://www.google.com/maps/dir/${gmapsCoords}/data=!4m2!4m1!3e${gmapsTravelMode === "driving" ? "0" : "2"}`;
+
+  // Render Horizontal Stop Chips
+  routeStopsList.innerHTML = `
+    <div class="route-stop-chip" onclick="focusOnCoordinate(${state.lat}, ${state.lng})">
+      <span class="stop-num-badge origin">📍</span>
+      <div class="stop-info">
+        <span class="stop-name">Start</span>
+        <span class="stop-meta">Origin Location</span>
+      </div>
+    </div>
+  ` + orderedPlaces.map((p, idx) => `
+    <div class="route-stop-chip" onclick="focusOnCoordinate(${p.location.latitude}, ${p.location.longitude})">
+      <span class="stop-num-badge">${idx + 1}</span>
+      <div class="stop-info">
+        <span class="stop-name">${escapeHtml(p.name)}</span>
+        <span class="stop-meta">${p.category || 'Spot'} • ⭐ ${p.rating || 'N/A'}</span>
+      </div>
+    </div>
+  `).join("");
+
+  // Show Route Panel
+  routeTourPanel.classList.remove("hidden");
+}
+
+window.focusOnCoordinate = function(lat, lng) {
+  if (state.map) {
+    state.map.setView([lat, lng], 16, { animate: true });
+  }
+};
+
+function clearActiveRoute() {
+  if (state.routeLayer) {
+    state.routeLayer.clearLayers();
+  }
+  state.activeRoutePlaces = [];
+  state.activeRouteTitle = "";
+  if (routeTourPanel) {
+    routeTourPanel.classList.add("hidden");
+  }
 }
 
 // --- Render Places Cards ---
@@ -500,14 +926,20 @@ window.toggleSavePlace = function (pid) {
 function updateSavedBadge() {
   const count = Object.keys(state.savedPlaces).length;
   savedCountBadge.textContent = count;
+  if (savedActionsBar) {
+    savedActionsBar.classList.toggle("hidden", count === 0);
+  }
 }
 
 function renderSavedPlaces() {
   const keys = Object.keys(state.savedPlaces);
   if (keys.length === 0) {
     savedPlacesList.innerHTML = `<p class="drawer-empty">No places saved yet. Click the heart icon on any card to save places for your trip.</p>`;
+    if (savedActionsBar) savedActionsBar.classList.add("hidden");
     return;
   }
+
+  if (savedActionsBar) savedActionsBar.classList.remove("hidden");
 
   savedPlacesList.innerHTML = keys
     .map((k) => {

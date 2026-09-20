@@ -142,9 +142,52 @@
         <!-- Left: Interactive Map Container -->
         <div class="map-container-wrapper">
           <div class="map-header">
-            <h3><i class="fa-solid fa-map-location-dot"></i> Interactive Map (Satellite Topo)</h3>
-            <span class="map-legend">🟢 Inexpensive | 🟠 Moderate | 🔴 Origin</span>
+            <div class="map-header-left">
+              <h3><i class="fa-solid fa-map-location-dot"></i> Map & Route Navigator</h3>
+            </div>
+            
+            <!-- Map Controls: Tiles & Walking Overlay -->
+            <div class="map-controls-bar">
+              <div class="tile-switcher" title="Change Map Style">
+                <button type="button" class="tile-btn active" data-layer="topo">🛰️ Topo</button>
+                <button type="button" class="tile-btn" data-layer="dark">🌙 Dark</button>
+                <button type="button" class="tile-btn" data-layer="street">🗺️ Street</button>
+                <button type="button" class="tile-btn" data-layer="satellite">📷 Sat</button>
+              </div>
+
+              <button type="button" id="toggle-walk-rings-btn" class="btn-map-tool" title="Toggle 15m/30m Walking Distance Rings">
+                <i class="fa-solid fa-person-walking"></i> <span>Walk Rings</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Active Route Tour Panel (Visible when a tour is active) -->
+          <div id="route-tour-panel" class="route-tour-panel hidden">
+            <div class="route-panel-header">
+              <div class="route-stats">
+                <span id="route-title" class="route-title">🚶 Walking Tour (Optimized)</span>
+                <div class="route-metrics">
+                  <span id="route-dist" class="badge-route-metric">📏 0.0 km</span>
+                  <span id="route-time" class="badge-route-metric">⏱️ ~0 mins</span>
+                  <span id="route-stops-count" class="badge-route-metric">📍 0 stops</span>
+                </div>
+              </div>
+              <div class="route-panel-actions">
+                <div class="route-mode-toggle">
+                  <button type="button" class="btn-mode active" data-mode="walking" title="Walking Mode">🚶 Walk</button>
+                  <button type="button" class="btn-mode" data-mode="driving" title="Driving / Cab Mode">🚗 Drive</button>
+                </div>
+                <a id="route-gmaps-btn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" title="Open full multi-stop route in Google Maps">
+                  <i class="fa-solid fa-diamond-turn-right"></i> Google Maps ↗
+                </a>
+                <button type="button" id="close-route-btn" class="btn-icon-close" title="Exit Route Tour">&times;</button>
+              </div>
+            </div>
+            
+            <!-- Step-by-step stops horizontal scrollbar -->
+            <div id="route-stops-list" class="route-stops-list"></div>
+          </div>
+
           <div id="map" class="map-view"></div>
         </div>
 
@@ -172,6 +215,12 @@
                 <input type="checkbox" id="open-now-checkbox" />
                 <span>🟢 Open Now</span>
               </label>
+            </div>
+            <div class="filter-item tour-action-item">
+              <button type="button" id="quick-tour-btn" class="btn btn-primary btn-tour" title="Create an optimized walking tour of the top budget places">
+                <i class="fa-solid fa-route"></i>
+                <span>Quick Tour</span>
+              </button>
             </div>
           </div>
 
@@ -203,6 +252,11 @@
       <button id="close-saved-btn" class="btn-close">&times;</button>
     </div>
     <div class="drawer-body">
+      <div id="saved-actions-bar" class="saved-actions-bar hidden">
+        <button type="button" id="plan-saved-tour-btn" class="btn btn-primary btn-full" style="margin-bottom: 0.8rem;">
+          <i class="fa-solid fa-route"></i> 🗺️ Plan Optimized Tour
+        </button>
+      </div>
       <div id="saved-places-list" class="saved-places-list">
         <p class="drawer-empty">No places saved yet. Click the heart icon on any card to save places for your trip.</p>
       </div>

@@ -779,3 +779,299 @@ input[type="range"] {
   margin-bottom: 0.8rem;
   color: var(--text-secondary);
 }
+
+/* =========================================================
+   PHASE 3: MAP CONTROLS & ROUTE OPTIMIZER STYLING
+   ========================================================= */
+
+/* Map Header Controls */
+.map-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tile-switcher {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.tile-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tile-btn:hover {
+  color: var(--text-primary);
+}
+
+.tile-btn.active {
+  background: var(--primary-teal);
+  color: white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.btn-map-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-map-tool:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.btn-map-tool.active {
+  background: rgba(20, 184, 166, 0.2);
+  border-color: var(--primary-teal);
+  color: var(--primary-light);
+}
+
+/* Route Tour Panel */
+.route-tour-panel {
+  background: linear-gradient(180deg, #131b2e 0%, #0f172a 100%);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.route-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.route-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.route-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #5eead4;
+}
+
+.route-metrics {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.badge-route-metric {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  color: var(--text-primary);
+}
+
+.route-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.route-mode-toggle {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.btn-mode {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-mode.active {
+  background: var(--primary-teal);
+  color: white;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-icon-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.3rem;
+  transition: var(--transition);
+}
+
+.btn-icon-close:hover {
+  color: var(--text-primary);
+}
+
+/* Route Stops Horizontal List */
+.route-stops-list {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding-bottom: 0.3rem;
+  scrollbar-width: thin;
+}
+
+.route-stops-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.route-stops-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.route-stop-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.route-stop-chip:hover {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: var(--primary-teal);
+  transform: translateY(-1px);
+}
+
+.stop-num-badge {
+  background: linear-gradient(135deg, #0d9488, #3b82f6);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stop-num-badge.origin {
+  background: var(--accent-red);
+}
+
+.stop-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.stop-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stop-meta {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+/* Tour Action Pill in toolbar */
+.tour-action-item {
+  margin-left: auto;
+}
+
+.btn-tour {
+  background: linear-gradient(135deg, #3b82f6, #0d9488);
+  font-size: 0.82rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-md);
+}
+
+.btn-tour:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Custom Route Markers */
+.route-waypoint-pin {
+  background: linear-gradient(135deg, #0d9488, #2563eb);
+  color: white;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  box-shadow: 0 0 12px rgba(13, 148, 136, 0.7);
+  animation: pulsePin 2s infinite ease-in-out;
+}
+
+@keyframes pulsePin {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); box-shadow: 0 0 16px rgba(59, 130, 246, 0.9); }
+  100% { transform: scale(1); }
+}
