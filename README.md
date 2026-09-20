@@ -2,7 +2,7 @@
 
 A modern, responsive full-stack web application that helps people find budget-friendly places (restaurants, cafes, stays, sights, and hidden gems) near any location — using live GPS detection or a typed place name — powered by the Google Places API and interactive Leaflet maps.
 
-**Live demo:** [budget-travel-ai-1wl373osl-ojaspaul123s-projects.vercel.app](https://budget-travel-ai-1wl373osl-ojaspaul123s-projects.vercel.app/)
+**Live demo:** [budget-travel-ai-1wl373osl-ojaspaul123s-projects.vercel.app](https://ai-budget-travel.vercel.app/)
 
 ---
 
