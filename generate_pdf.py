@@ -166,11 +166,11 @@ def generate_pdf(output_filename="Budget_Travel_AI_Documentation.pdf"):
     # Metadata Box
     meta_data = [
         [
-            Paragraph("<b>Version:</b> 2.0.0 (SPA + Vercel)", body_style),
+            Paragraph("<b>Version:</b> 3.0.0 (SPA + Route Optimizer)", body_style),
             Paragraph("<b>Author / Maintainer:</b> ojaspaul123", body_style),
         ],
         [
-            Paragraph("<b>Architecture:</b> FastAPI + Vanilla SPA", body_style),
+            Paragraph("<b>Architecture:</b> FastAPI + Leaflet + OSRM", body_style),
             Paragraph("<b>Deployment:</b> Vercel Serverless", body_style),
         ]
     ]
@@ -193,7 +193,8 @@ def generate_pdf(output_filename="Budget_Travel_AI_Documentation.pdf"):
         "Mainstream mapping applications (such as Google Maps or Yelp) prioritize commercial visibility or general popularity, "
         "frequently burying budget-friendly eateries, student spots, and affordable lodging beneath high-cost establishments. "
         "<b>Budget Travel AI</b> solves this by layering deterministic price-tier normalization and rating-weighted scoring over the "
-        "Google Places API (New), presented through a high-performance, single-page web app with interactive satellite maps.",
+        "Google Places API (New), presented through a high-performance single-page web app equipped with an interactive satellite map, "
+        "nearest-neighbor TSP multi-stop route optimization, and OSRM walking/driving tour calculation.",
         body_style
     ))
 
@@ -201,10 +202,12 @@ def generate_pdf(output_filename="Budget_Travel_AI_Documentation.pdf"):
     story.append(Paragraph("2. Key Benefits & Value Proposition", h1_style))
     benefits = [
         "<b>Strict Budget Filtering:</b> Five explicit budget tiers (Free, Inexpensive $, Moderate $$, Expensive $$$, Any) ensure results match real travel budgets.",
-        "<b>Zero-Friction Location Discovery:</b> Instant live location lookup via browser GPS geolocation or geocoding autocomplete for any global city/landmark.",
-        "<b>Interactive Satellite Topo Map:</b> Seamless Leaflet map rendering Esri World Topo tiles (watermark-free, no tile API keys needed) with glowing budget pins.",
-        "<b>1-Click Turn-by-Turn Directions:</b> Direct Google Maps deep navigation links embedded on every popup pin and place card.",
-        "<b>Trip Bucket List:</b> Client-side trip bookmarking drawer powered by browser localStorage with session persistence.",
+        "<b>Multi-Stop Route Optimizer:</b> Traveling Salesperson (TSP) nearest-neighbor algorithm orders saved or top spots sequentially to minimize travel distance.",
+        "<b>Interactive Road & Footpath Routing:</b> Integrated OSRM routing engine draws real pedestrian walkways and driving routes directly on the Leaflet map.",
+        "<b>Map Style & Theme Switcher:</b> Instant switching between Satellite Topo, Carto Dark Night Mode, OpenStreetMap, and World Imagery.",
+        "<b>15-Min & 30-Min Walk Rings:</b> Visual walking distance boundary isochrones helping travelers stay within walking radius and eliminate taxi fares.",
+        "<b>1-Click Multi-Stop Google Maps Navigation:</b> Direct multi-waypoint deep navigation URLs linking all itinerary stops in sequence.",
+        "<b>Trip Bucket List:</b> Client-side trip bookmarking drawer powered by browser localStorage with one-click tour planning.",
         "<b>Serverless & Production Ready:</b> Pre-configured with vercel.json for zero-maintenance Python serverless deployment.",
     ]
     for b in benefits:
@@ -220,9 +223,10 @@ def generate_pdf(output_filename="Budget_Travel_AI_Documentation.pdf"):
     tech_table_data = [
         [Paragraph("<b>Component</b>", body_style), Paragraph("<b>Technology</b>", body_style), Paragraph("<b>Key Role & Responsibility</b>", body_style)],
         [Paragraph("Frontend UI", body_style), Paragraph("HTML5 + Vanilla CSS3", body_style), Paragraph("Dark glassmorphism design system, responsive cards, slide-out drawer.", body_style)],
-        [Paragraph("Frontend Logic", body_style), Paragraph("Vanilla JavaScript (ES6+)", body_style), Paragraph("State management, debounced geocoding, filters, localStorage bucket list.", body_style)],
-        [Paragraph("Geospatial Map", body_style), Paragraph("Leaflet.js 1.9.4", body_style), Paragraph("Interactive satellite map, glowing pins, search radius circle overlay.", body_style)],
-        [Paragraph("Base Tiles", body_style), Paragraph("Esri ArcGIS World Topo", body_style), Paragraph("High-resolution, watermark-free topographic imagery with zero key cost.", body_style)],
+        [Paragraph("Frontend Logic", body_style), Paragraph("Vanilla JavaScript (ES6+)", body_style), Paragraph("TSP route sequencing, debounced geocoding, filters, localStorage bucket list.", body_style)],
+        [Paragraph("Routing Engine", body_style), Paragraph("OSRM Public API (Foot/Drive)", body_style), Paragraph("Real road/pedestrian network coordinates and duration calculations.", body_style)],
+        [Paragraph("Geospatial Map", body_style), Paragraph("Leaflet.js 1.9.4", body_style), Paragraph("Multi-tile switcher, glowing route polylines, numbered waypoint pins.", body_style)],
+        [Paragraph("Base Tiles", body_style), Paragraph("Esri Topo / Carto Dark / OSM", body_style), Paragraph("Multiple selectable map tile layers with zero key cost.", body_style)],
         [Paragraph("API Backend", body_style), Paragraph("FastAPI (Python 3.10+)", body_style), Paragraph("Asynchronous REST endpoints, CORS middleware, Pydantic validation.", body_style)],
         [Paragraph("External APIs", body_style), Paragraph("Google Places & Geocoding", body_style), Paragraph("Places API (New) searchText endpoint and address geocoding.", body_style)],
         [Paragraph("Deployment", body_style), Paragraph("Vercel Serverless", body_style), Paragraph("@vercel/python serverless API + @vercel/static asset CDN.", body_style)],
@@ -248,7 +252,8 @@ def generate_pdf(output_filename="Budget_Travel_AI_Documentation.pdf"):
         "<b>2. Search Query Execution:</b> User selects category, maximum budget tier, and search radius in km (0.5 to 25.0 km). Frontend posts payload to POST /api/search.",
         "<b>3. Google Places API Query:</b> Backend queries Google Places API (New) searchText endpoint requesting a field mask (id, displayName, location, priceLevel, rating, etc.).",
         "<b>4. Budget Filtering & Scoring:</b> Backend score_by_budget() normalizes raw prices, filters places exceeding max_budget_level, and sorts candidates by rating and review count.",
-        "<b>5. Client-Side Geospatial Rendering:</b> Leaflet initializes Esri Satellite Topo map, centers on origin, draws the search radius boundary circle, and mounts glowing budget pins with rich interactive popups.",
+        "<b>5. Geospatial & Route Rendering:</b> Leaflet initializes map with selectable tile layers, draws the search radius / walking rings, and mounts interactive place pins.",
+        "<b>6. Itinerary & Route Optimization:</b> User clicks 'Quick Tour' or 'Plan Optimized Tour' — frontend runs TSP nearest-neighbor ordering, queries OSRM for footpath/road geometry, and renders the route with travel metrics and Google Maps export.",
     ]
     for ws in workflow_steps:
         story.append(Paragraph(ws, bullet_style))
