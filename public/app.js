@@ -46,6 +46,10 @@ const state = {
   activeRouteTitle: "",
   showWalkRings: false,
   walkRingsLayer: null,
+
+  // AI Recommendations State
+  aiSummary: "",
+  selectedVibe: "all",
 };
 
 // --- DOM Elements ---
@@ -62,6 +66,10 @@ const resultsSection = document.getElementById("results-section");
 const placesList = document.getElementById("places-list");
 const emptyState = document.getElementById("empty-state");
 const loadingOverlay = document.getElementById("loading-overlay");
+
+// AI Concierge Elements
+const aiConciergeCard = document.getElementById("ai-concierge-card");
+const aiSummaryText = document.getElementById("ai-summary-text");
 
 // Analytics
 const statTotal = document.getElementById("stat-total");
@@ -183,6 +191,16 @@ function initEventListeners() {
   categoryFilter.addEventListener("change", applyFiltersAndRender);
   sortSelect.addEventListener("change", applyFiltersAndRender);
   openNowCheckbox.addEventListener("change", applyFiltersAndRender);
+
+  // AI Vibe Filter Pills
+  document.querySelectorAll(".vibe-pill").forEach((pill) => {
+    pill.addEventListener("click", () => {
+      state.selectedVibe = pill.dataset.vibe;
+      document.querySelectorAll(".vibe-pill").forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      applyFiltersAndRender();
+    });
+  });
 
   // Quick Tour Button
   if (quickTourBtn) {
@@ -363,9 +381,24 @@ async function performSearch() {
 
     const data = await res.json();
     state.places = data.results || [];
+    state.aiSummary = data.ai_summary || "";
 
     hideLoading();
     resultsSection.classList.remove("hidden");
+
+    // Display AI Concierge Summary if present
+    if (state.aiSummary && aiConciergeCard && aiSummaryText) {
+      aiSummaryText.textContent = state.aiSummary;
+      aiConciergeCard.classList.remove("hidden");
+    } else if (aiConciergeCard) {
+      aiConciergeCard.classList.add("hidden");
+    }
+
+    // Reset vibe filter to all on new search
+    state.selectedVibe = "all";
+    document.querySelectorAll(".vibe-pill").forEach((p) => p.classList.remove("active"));
+    const allPill = document.querySelector('.vibe-pill[data-vibe="all"]');
+    if (allPill) allPill.classList.add("active");
 
     // Clear active route when new search is made
     clearActiveRoute();
@@ -409,6 +442,11 @@ function applyFiltersAndRender() {
   // Open now filter
   if (openOnly) {
     list = list.filter((p) => p.open_now === true);
+  }
+
+  // AI Vibe filter
+  if (state.selectedVibe && state.selectedVibe !== "all") {
+    list = list.filter((p) => (p.ai_badge || "") === state.selectedVibe);
   }
 
   // Sorting
@@ -523,9 +561,14 @@ function renderMap() {
 
     const gmapsUrl = p.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
+    const aiBadgeHtml = p.ai_badge
+      ? `<div style="font-size: 11px; color: #c4b5fd; margin-bottom: 5px; font-weight: 700; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.35); padding: 2px 6px; border-radius: 6px; display: inline-block;">✨ ${escapeHtml(p.ai_badge)}</div>`
+      : '';
+
     const popupHtml = `
       <div class="popup-card">
         <div class="popup-title">#${idx + 1}. ${escapeHtml(p.name)}</div>
+        ${aiBadgeHtml}
         <div class="popup-meta">🏷️ ${p.category || 'Place'} | <b>${p.price_symbol || '$'} ${p.price_level || 'Budget'}</b></div>
         <div style="font-size: 12px; margin-bottom: 6px;">
           ⭐ <b>${p.rating || 'N/A'}</b> <span style="color: #94a3b8; font-size: 11px;">(${p.user_rating_count || 0} reviews)</span>
@@ -883,6 +926,7 @@ function renderPlacesList() {
             <div class="card-rating">⭐ ${p.rating || 'N/A'} <small>(${p.user_rating_count || 0})</small></div>
           </div>
           <div class="card-badges">
+            ${p.ai_badge ? `<span class="badge badge-ai">✨ ${escapeHtml(p.ai_badge)}</span>` : ''}
             <span class="badge ${budgetClass}">${p.price_symbol || '$'} ${p.price_level || 'Budget'}</span>
             <span class="badge badge-category">${p.category || 'Place'}</span>
             ${openBadge}
@@ -891,6 +935,12 @@ function renderPlacesList() {
             <i class="fa-solid fa-location-dot"></i>
             <span>${escapeHtml(p.address || 'No address available')}</span>
           </div>
+          ${p.ai_reason ? `
+            <div class="card-ai-reason">
+              <i class="fa-solid fa-lightbulb"></i>
+              <span>${escapeHtml(p.ai_reason)}</span>
+            </div>
+          ` : ''}
           <div class="card-actions">
             <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-card">
               <i class="fa-solid fa-location-arrow"></i> Directions
