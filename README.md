@@ -73,13 +73,13 @@ At its core, the app:
 ## 🚀 Future Improvements
 
 - [x] **AI-powered recommendations**: Layer an LLM over the filtered results to suggest places in natural language ("best for a quick solo lunch," "good for groups on a budget") instead of a plain sorted list
+- [x]  **Route optimization**: Suggest an efficient order to visit multiple saved bucket-list spots
 - [ ] **Full itinerary planning**: Chain multiple searches into a day plan using a distance/travel-time API between stops
 - [ ] **User accounts**: Sync the Trip Bucket List across devices instead of relying on local persistence only
 - [ ] **Caching**: Cache repeated Places API responses to cut cost and improve load times
 - [ ] **Offline-friendly fallback**: Graceful degradation if the Places API is rate-limited or briefly unreachable
 - [ ] **Reviews & photos**: Surface a top review snippet or photo per place (mindful of the higher-cost API tier this requires)
 - [ ] **Multi-language support**: Useful for international travelers exploring non-English-speaking regions
-- [ ] **Route optimization**: Suggest an efficient order to visit multiple saved bucket-list spots
 
 ---
 
