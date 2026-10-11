@@ -18,6 +18,7 @@ Budget Travel AI lets a user:
 * Click on any pin to view a rich popup card with star rating, review count, open/closed status, and direct 1-click Google Maps directions
 * Filter places dynamically by Category and sort by Rating ⭐, Review Count 👥, or Lowest Budget 💰
 * Save favorite spots to a Trip Bucket List with instant local persistence and directions
+* Get **AI-powered recommendations**: an LLM reads the filtered results and suggests places in natural language (e.g. "best for a quick solo lunch", "good for groups on a budget") instead of showing a plain sorted list
 
 ---
 
@@ -31,6 +32,7 @@ At its core, the app:
 - Tags and filters results by budget tier and category
 - Renders everything on a live Leaflet map with custom pins and rich popups
 - Lets users curate a personal "Trip Bucket List" that persists locally
+- Passes the filtered results to an LLM to generate natural-language recommendations tailored to the user's situation
 
 ---
 
@@ -70,14 +72,14 @@ At its core, the app:
 
 ## 🚀 Future Improvements
 
-- **AI-powered recommendations**: Layer an LLM over the filtered results to suggest places in natural language ("best for a quick solo lunch," "good for groups on a budget") instead of a plain sorted list
-- **Full itinerary planning**: Chain multiple searches into a day plan using a distance/travel-time API between stops
-- **User accounts**: Sync the Trip Bucket List across devices instead of relying on local persistence only
-- **Caching**: Cache repeated Places API responses to cut cost and improve load times
-- **Offline-friendly fallback**: Graceful degradation if the Places API is rate-limited or briefly unreachable
-- **Reviews & photos**: Surface a top review snippet or photo per place (mindful of the higher-cost API tier this requires)
-- **Multi-language support**: Useful for international travelers exploring non-English-speaking regions
-- **Route optimization**: Suggest an efficient order to visit multiple saved bucket-list spots
+- [x] **AI-powered recommendations**: Layer an LLM over the filtered results to suggest places in natural language ("best for a quick solo lunch," "good for groups on a budget") instead of a plain sorted list
+- [ ] **Full itinerary planning**: Chain multiple searches into a day plan using a distance/travel-time API between stops
+- [ ] **User accounts**: Sync the Trip Bucket List across devices instead of relying on local persistence only
+- [ ] **Caching**: Cache repeated Places API responses to cut cost and improve load times
+- [ ] **Offline-friendly fallback**: Graceful degradation if the Places API is rate-limited or briefly unreachable
+- [ ] **Reviews & photos**: Surface a top review snippet or photo per place (mindful of the higher-cost API tier this requires)
+- [ ] **Multi-language support**: Useful for international travelers exploring non-English-speaking regions
+- [ ] **Route optimization**: Suggest an efficient order to visit multiple saved bucket-list spots
 
 ---
 
@@ -86,24 +88,29 @@ At its core, the app:
 ```
 budget-travel-ai/
 ├── app/
-│   ├── main.py                 # FastAPI entry point & static file server
-│   ├── config.py                # Loads GOOGLE_MAPS_API_KEY from environment
+│   ├── main.py                    # FastAPI entry point & static file server
+│   ├── config.py                  # Loads GOOGLE_MAPS_API_KEY / Gemini key from environment
 │   ├── models/
-│   │   └── schemas.py           # Pydantic request/response models
+│   │   └── schemas.py             # Pydantic request/response models
 │   ├── routers/
-│   │   ├── search.py            # POST /api/search endpoint
-│   │   └── geocode.py           # GET /api/geocode endpoint
+│   │   ├── search.py              # POST /api/search endpoint
+│   │   └── geocode.py             # GET /api/geocode endpoint
 │   └── services/
-│       ├── places_client.py     # Calls Google Places API (New)
-│       ├── geocode_client.py    # Converts place name → lat/lng
-│       └── ranker.py            # Filters & ranks places by budget tier
+│       ├── places_client.py       # Calls Google Places API (New)
+│       ├── geocode_client.py      # Converts place name → lat/lng
+│       ├── ranker.py              # Filters & ranks places by budget tier
+│       └── ai_recommender.py      # Gemini Flash recommendations (with heuristic fallback)
 ├── public/
-│   ├── index.html               # Modern responsive SPA frontend
-│   ├── style.css                # Premium dark glassmorphism design system
-│   └── app.js                   # Map rendering, search, filters & trip bucket list
-├── vercel.json                  # 1-Click Vercel deployment config
-├── requirements.txt             # Lightweight Python dependencies
-├── .env                         # Local API key (not committed)
+│   ├── index.html                 # Modern responsive SPA frontend
+│   ├── style.css                  # Premium dark glassmorphism design system
+│   └── app.js                     # Map rendering, search, filters, AI badges & trip bucket list
+├── DOCUMENTATION.md               # Detailed project documentation
+├── Budget_Travel_AI_Documentation.pdf  # PDF version of the documentation
+├── generate_pdf.py                # Script that builds the PDF from DOCUMENTATION.md
+├── README.md                      # Project overview (this file)
+├── vercel.json                    # 1-Click Vercel deployment config
+├── requirements.txt               # Lightweight Python dependencies
+├── .env                           # Local API keys (must NOT be committed)
 └── .gitignore
 ```
 
